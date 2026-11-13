@@ -1,0 +1,93 @@
+# The box's server. The init container seeds only an empty database, so a
+# restart, upgrade or rollback keeps the rows; the seed lock keeps two
+# starting pods from seeding at once. Recreate, so two versions never serve.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keiko
+  labels:
+    app: keiko
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: keiko
+  template:
+    metadata:
+      labels:
+        app: keiko
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: seed
+          image: ghcr.io/sannrox/keiko:v0.1.0
+          args: ["seed", "--if-empty"]
+          securityContext: &restricted
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: KEIKO_DATABASE_URL
+              value: postgres://keiko:keiko@keiko-db:5432/erp
+            - name: KEIKO_SEED
+              value: "1"
+            - name: KEIKO_SIZE
+              value: small
+      containers:
+        - name: keiko
+          image: ghcr.io/sannrox/keiko:v0.1.0
+          args: ["serve"]
+          securityContext: *restricted
+          env:
+            - name: KEIKO_DATABASE_URL
+              value: postgres://keiko:keiko@keiko-db:5432/erp
+            - name: KEIKO_HOST
+              value: 0.0.0.0
+            - name: KEIKO_PORT
+              value: "8787"
+            - name: KEIKO_PORTAL_TOKEN
+              value: keiko-dev-token
+            - name: KEIKO_TLS_CERT
+              value: /tls/tls.crt
+            - name: KEIKO_TLS_KEY
+              value: /tls/tls.key
+          ports:
+            - name: https
+              containerPort: 8787
+          volumeMounts:
+            - name: tls
+              mountPath: /tls
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: https
+              scheme: HTTPS
+            periodSeconds: 2
+      volumes:
+        - name: tls
+          secret:
+            secretName: keiko-tls
+            defaultMode: 0440
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keiko
+  labels:
+    app: keiko
+spec:
+  selector:
+    app: keiko
+  ports:
+    - name: https
+      port: 8787
+      targetPort: https

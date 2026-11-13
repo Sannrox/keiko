@@ -26,9 +26,13 @@ hold the same data.
   generator and `compose.yaml`.
 - `deploy/tenkai.toml`: the tenkai host product. Its install reads the compose
   file out of the released image, so it needs no checkout.
+- `deploy/kubernetes/`: the Kubernetes tenkai product (`kubernetes-inprocess`):
+  Postgres as a StatefulSet with a claim, keiko as a Deployment whose init
+  container seeds only an empty database. `scripts/kube-tls.sh` creates the
+  `keiko-tls` Secret with the image.
 - `.github/workflows/release.yml`: a `v<version>` tag publishes the image to
-  GHCR. `test/release.test.ts` keeps `package.json`, the manifest and its image
-  tag on one version.
+  GHCR. `test/release.test.ts` keeps `package.json`, both products and every
+  image tag they install on one version.
 - `compose.yaml`: the whole box. A one-shot `tls` service writes a throwaway
   authority into a volume, Postgres 17 runs with the change stream and TLS on
   and keeps its data in a volume, a one-shot `seed` seeds only an empty
@@ -280,6 +284,8 @@ Rows beyond `## Testing Guidelines`:
 - seeding from compose never replaces a seeded database;
 - the published image `ghcr.io/sannrox/keiko:v<version>`, and the tenkai
   manifest's product name, ports and uninstall that keeps volumes;
+- the Kubernetes Service names `keiko` and `keiko-db`, Secret `keiko-tls`
+  (`tls.crt`, `tls.key`, `ca.crt`), and the restricted Pod Security level;
 - throwaway TLS authority path `tls/ca.crt` (gitignored).
 
 ## Security & Configuration

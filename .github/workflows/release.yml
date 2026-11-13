@@ -1,8 +1,8 @@
 name: Release
 
 # Push the tag v<version> to publish ghcr.io/sannrox/keiko:v<version>, the
-# image deploy/tenkai.toml installs. The tag, package.json and the manifest
-# must name the same version.
+# image both tenkai products under deploy/ install. The tag, package.json and
+# every manifest must name the same version.
 
 on:
   push:
@@ -22,7 +22,8 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           test "$(node -p 'require("./package.json").version')" = "$version"
           grep -qx "version = \"$version\"" deploy/tenkai.toml
-          grep -q "IMG=ghcr.io/sannrox/keiko:v$version\$" deploy/tenkai.toml
+          grep -qx "version = \"$version\"" deploy/kubernetes/tenkai.toml
+          ! grep -rho "ghcr.io/sannrox/keiko:[^\" ]*" deploy | grep -vx "ghcr.io/sannrox/keiko:v$version"
       - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
