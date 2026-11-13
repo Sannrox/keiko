@@ -1,0 +1,34 @@
+# tenkai host product for keiko.
+#
+# Installs a whole box (TLS authority, database, seed, HTTPS server) from the
+# released image. Commands are self-contained: the image carries its compose
+# file, so no checkout is needed. COMPOSE_PROJECT_NAME comes from tenkai and is
+# stable per environment and instance, so the box's volumes survive upgrade,
+# reinstall and rollback. Seeding only fills an empty database. Uninstall
+# removes the containers and keeps the volumes; `docker volume rm` them to
+# throw the data away.
+#
+# Release flow: bump the version here, the image tag below and package.json
+# together, commit, and push the tag `v<version>`. The release workflow checks
+# they agree and pushes the image to GHCR.
+
+[product]
+name = "keiko"
+version = "0.1.0"
+description = "keiko, a synthetic customer in a box (host product)"
+
+[deploy]
+workdir = "."
+install = """
+set -eu
+IMG=ghcr.io/sannrox/keiko:v0.1.0
+docker image inspect "$IMG" >/dev/null 2>&1 || docker pull -q "$IMG" >/dev/null
+docker run --rm --entrypoint cat "$IMG" compose.yaml |
+  KEIKO_IMAGE="$IMG" KEIKO_SEED=1 KEIKO_SIZE=small KEIKO_PORT=8787 KEIKO_DB_PORT=54329 \
+  docker compose -f - up -d --wait --no-build
+"""
+uninstall = "docker compose -p \"$COMPOSE_PROJECT_NAME\" down"
+health = """
+docker ps --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" \
+  --filter label=com.docker.compose.service=keiko --format '{{.Status}}' | grep -q '(healthy)'
+"""

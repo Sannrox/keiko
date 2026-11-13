@@ -22,8 +22,13 @@ hold the same data.
   is set; it creates a database named with process id plus a random suffix and
   drops it at the end. `test/tls.test.ts` runs when that URL and
   `KEIKO_TEST_CA_CERT` are both set; it does not create a database.
-- `Dockerfile`: one image with the server, the seed command and the TLS
-  generator.
+- `Dockerfile`: one image with the server, the seed command, the TLS
+  generator and `compose.yaml`.
+- `deploy/tenkai.toml`: the tenkai host product. Its install reads the compose
+  file out of the released image, so it needs no checkout.
+- `.github/workflows/release.yml`: a `v<version>` tag publishes the image to
+  GHCR. `test/release.test.ts` keeps `package.json`, the manifest and its image
+  tag on one version.
 - `compose.yaml`: the whole box. A one-shot `tls` service writes a throwaway
   authority into a volume, Postgres 17 runs with the change stream and TLS on
   and keeps its data in a volume, a one-shot `seed` seeds only an empty
@@ -273,6 +278,8 @@ Rows beyond `## Testing Guidelines`:
 - image pins (`postgres:17-alpine`, the `node` base in `Dockerfile`) and the
   compose service names `db` and `keiko`, which other networks address;
 - seeding from compose never replaces a seeded database;
+- the published image `ghcr.io/sannrox/keiko:v<version>`, and the tenkai
+  manifest's product name, ports and uninstall that keeps volumes;
 - throwaway TLS authority path `tls/ca.crt` (gitignored).
 
 ## Security & Configuration
