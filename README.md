@@ -45,6 +45,11 @@ joining the box's network (`<project>_default`) as an external network: the
 server is `https://keiko:8787` and the database `db:5432`, both covered by the
 certificate.
 
+A tenkai profile pins a released box instead: `deploy/tenkai.toml` installs
+`ghcr.io/sannrox/keiko:v<version>` on a container host with no checkout, keeps
+its rows across upgrade and rollback, and reports healthy once `/healthz`
+answers. It serves seed 1, size small, on ports 8787 and 54329.
+
 In a second terminal, ask the box what it holds:
 
 ```sh
@@ -201,6 +206,11 @@ The last commands also run `test/db.test.ts` and, with `KEIKO_TEST_CA_CERT`,
 `test/tls.test.ts`. Database tests create a uniquely named database on that
 server and drop it; the caller supplies the server. The TLS file talks to the
 supplied server and does not create a database.
+
+To release, bump the version in `package.json` and `deploy/tenkai.toml`
+(product version and image tag) together, merge, and push the tag
+`v<version>`. The release workflow checks they agree and publishes the image
+for amd64 and arm64.
 
 Repository layout, delivery lanes and commit rules are in
 [AGENTS.md](AGENTS.md).

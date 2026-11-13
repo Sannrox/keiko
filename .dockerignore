@@ -3,3 +3,4 @@
 !pnpm-lock.yaml
 !src/
 !scripts/db-tls.sh
+!compose.yaml

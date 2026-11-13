@@ -4,9 +4,11 @@
 # Set COMPOSE_PROJECT_NAME, KEIKO_DB_PORT and KEIKO_PORT to run several boxes
 # side by side. Ports are published on loopback only; inside the network the
 # box is `keiko` and the database is `db`.
+# The image carries this file, so a release can start the box without a
+# checkout (see deploy/tenkai.toml); KEIKO_IMAGE then names the released image.
 
 x-keiko: &keiko
-  image: keiko:local
+  image: ${KEIKO_IMAGE:-keiko:local}
   build: .
 
 services:
