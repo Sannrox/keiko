@@ -1,0 +1,95 @@
+# The whole box: `docker compose up -d --wait --build` generates the TLS authority,
+# starts the database, seeds it if empty, and serves HTTPS on loopback.
+# `pnpm db` starts only the database for a box served from the host.
+# Set COMPOSE_PROJECT_NAME, KEIKO_DB_PORT and KEIKO_PORT to run several boxes
+# side by side. Ports are published on loopback only; inside the network the
+# box is `keiko` and the database is `db`.
+
+x-keiko: &keiko
+  image: keiko:local
+  build: .
+
+services:
+  # One-shot: writes the authority into the tls volume, reused while its names match.
+  tls:
+    <<: *keiko
+    entrypoint: ["bash", "scripts/db-tls.sh"]
+    command: []
+    environment:
+      KEIKO_TLS_NAMES: ${KEIKO_TLS_NAMES:-DNS:localhost,IP:127.0.0.1,DNS:db,DNS:keiko}
+    volumes:
+      - tls:/app/tls
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: keiko
+      POSTGRES_PASSWORD: keiko
+      POSTGRES_DB: erp
+    volumes:
+      - tls:/tls:ro
+      - data:/var/lib/postgresql/data
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        set -eu
+        cp /tls/server.crt /tls/server.key /tmp/
+        chown postgres:postgres /tmp/server.crt /tmp/server.key
+        chmod 600 /tmp/server.key
+        exec docker-entrypoint.sh postgres \
+          -c wal_level=logical \
+          -c ssl=on \
+          -c ssl_cert_file=/tmp/server.crt \
+          -c ssl_key_file=/tmp/server.key
+    ports:
+      - "127.0.0.1:${KEIKO_DB_PORT:-54329}:5432"
+    depends_on:
+      tls:
+        condition: service_completed_successfully
+    healthcheck:
+      # TCP, not the socket: first-start init answers on the socket before TCP is up.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U keiko -d erp"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+  # One-shot: seeds only an empty database, so a restart keeps the rows.
+  # Re-seed on purpose with `docker compose run --rm seed seed`.
+  seed:
+    <<: *keiko
+    command: ["seed", "--if-empty"]
+    environment:
+      KEIKO_DATABASE_URL: postgres://keiko:keiko@db:5432/erp
+      KEIKO_SEED: ${KEIKO_SEED:-1}
+      KEIKO_SIZE: ${KEIKO_SIZE:-small}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  keiko:
+    <<: *keiko
+    command: ["serve"]
+    environment:
+      KEIKO_DATABASE_URL: postgres://keiko:keiko@db:5432/erp
+      KEIKO_HOST: 0.0.0.0
+      KEIKO_PORT: "8787"
+      KEIKO_PORTAL_TOKEN: ${KEIKO_PORTAL_TOKEN:-keiko-dev-token}
+      KEIKO_TLS_CERT: /app/tls/server.crt
+      KEIKO_TLS_KEY: /app/tls/server.key
+      NODE_EXTRA_CA_CERTS: /app/tls/ca.crt
+    volumes:
+      - tls:/app/tls:ro
+    ports:
+      - "127.0.0.1:${KEIKO_PORT:-8787}:8787"
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('https://keiko:8787/healthz').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  tls:
+  data:

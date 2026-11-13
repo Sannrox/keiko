@@ -1,0 +1,21 @@
+{
+  "name": "keiko",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "A synthetic system of record for rehearsing source sync and governed writes.",
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "db": "docker compose up -d --wait db && docker compose cp db:/tls/. tls/",
+    "seed": "node src/main.ts seed",
+    "box": "docker compose up -d --wait --build",
+    "serve": "node src/main.ts serve",
+    "up": "pnpm db && pnpm seed && pnpm serve",
+    "down": "docker compose down -v",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test 'test/*.test.ts'"
+  },
+  "dependencies": { "pg": "^8.13.1" },
+  "devDependencies": { "@types/node": "^24.0.0", "@types/pg": "^8.11.10", "typescript": "^5.8.0" }
+}
