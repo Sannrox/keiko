@@ -1,0 +1,27 @@
+# Kubernetes packaging of keiko, a tenkai product of its own. Install it into
+# the same test namespace as a consumer so the consumer reaches it by service
+# name (`keiko`, `keiko-db`). keiko is test equipment: it is never part of a
+# consumer's own deployment.
+#
+# Requires TENKAI_SOFTWARE_EXECUTOR=kubernetes-inprocess and an
+# environment-scoped kubeconfig path (`tenkaictl env cluster-config set`).
+# Tenkai applies manifests/ and admits health from the workload conditions.
+#
+# Create Secret `keiko-tls` in the environment namespace before apply; the
+# README shows how. Data lives in the database's PersistentVolumeClaim, so it
+# survives restart, upgrade and rollback; the keiko pod seeds only an empty
+# database.
+
+[product]
+name = "keiko"
+version = "0.1.0"
+description = "keiko, a synthetic customer in a box (Kubernetes)"
+kind = "software"
+
+[deploy]
+workdir = "."
+# In-process apply uses manifests/; install is unused when the executor is set.
+# Fail closed if the operator forgets TENKAI_SOFTWARE_EXECUTOR.
+install = "echo 'set TENKAI_SOFTWARE_EXECUTOR=kubernetes-inprocess for this product' >&2; exit 1"
+uninstall = "true"
+inputs = ["manifests"]

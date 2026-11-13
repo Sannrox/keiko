@@ -50,6 +50,23 @@ A tenkai profile pins a released box instead: `deploy/tenkai.toml` installs
 its rows across upgrade and rollback, and reports healthy once `/healthz`
 answers. It serves seed 1, size small, on ports 8787 and 54329.
 
+To rehearse a consumer that runs in Kubernetes, install keiko into the same
+namespace with `deploy/kubernetes/tenkai.toml` (executor
+`kubernetes-inprocess`), or apply its manifests directly. The consumer reaches
+`https://keiko:8787` and `keiko-db:5432`. Create the TLS Secret first; the
+image generates it, so only a container runtime and kubectl are needed:
+
+```sh
+bash scripts/kube-tls.sh <namespace>
+kubectl -n <namespace> apply -f deploy/kubernetes/manifests/
+```
+
+Point clients at the Secret's `ca.crt`. The database keeps its data in a
+PersistentVolumeClaim, and the keiko pod seeds only an empty database, so
+restarts, upgrades and rollbacks keep the rows. Both pods run under the
+`restricted` Pod Security level. keiko is test equipment: install it beside a
+consumer, never into the consumer's own deployment.
+
 In a second terminal, ask the box what it holds:
 
 ```sh
