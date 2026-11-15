@@ -45,7 +45,7 @@ Postgres is the durable store. Switches and accepted bookings live there too;
 portal-only mode keeps them in memory. Connectors are the consumers; keiko does
 not call out. Concurrent advances on one database serialize on the meta row.
 
-Human documentation: [README.md](README.md). `CLAUDE.md` only points here;
+Human documentation: [README.md](README.md). `CLAUDE.md` is a symlink to this file;
 this file is canonical. GitHub Issues are the planning source of truth. The
 workflow Skills come from the shared agent kit (see `## Shared agent skills`).
 
