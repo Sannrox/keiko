@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/Sannrox/keiko/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Sannrox/keiko/actions/workflows/ci.yml)
 
-[Quickstart](#try-it) · [How it works](#how-it-works) · [HTTP](#http) · [Switches](#switches) · [Agent guide](AGENTS.md)
+[Quickstart](#try-it) · [How it works](#how-it-works) · [HTTP](#http) · [Switches](#switches) · [Changelog](CHANGELOG.md) · [Agent guide](AGENTS.md)
 
 Keiko (稽古, "practice") is a synthetic customer in a box: a small logistics
 company's system of record that connectors and governed writes can be
@@ -206,9 +206,9 @@ has them. Portal-only mode (`KEIKO_PORTAL_ONLY=1`) keeps them in memory.
 
 ## Status
 
-Pre-1.0 and unreleased. The box serves snapshot reads, change capture and one
-idempotent write today; routes and the truth format may still change. Work is
-tracked in [GitHub Issues](https://github.com/Sannrox/keiko/issues).
+Pre-1.0. First version: [0.1.0](CHANGELOG.md). The box serves snapshot reads,
+change capture and one idempotent write; routes and the truth format may still
+change. Work is tracked in [GitHub Issues](https://github.com/Sannrox/keiko/issues).
 
 ## Contributing
 
@@ -224,10 +224,11 @@ The last commands also run `test/db.test.ts` and, with `KEIKO_TEST_CA_CERT`,
 server and drop it; the caller supplies the server. The TLS file talks to the
 supplied server and does not create a database.
 
-To release, bump the version in `package.json` and `deploy/tenkai.toml`
-(product version and image tag) together, merge, and push the tag
-`v<version>`. The release workflow checks they agree and publishes the image
-for amd64 and arm64.
+To release, bump the version in `package.json`, both files under `deploy/`,
+and every `ghcr.io/sannrox/keiko` image tag they install, together with a
+`CHANGELOG.md` section. Merge, then push the signed tag `v<version>`. The
+release workflow checks they agree and publishes the image for amd64 and
+arm64.
 
 Repository layout, delivery lanes and commit rules are in
 [AGENTS.md](AGENTS.md).
